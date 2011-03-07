@@ -1,0 +1,23 @@
+<ul>
+    <li><a href="/">Index</a></li>
+    <li><a href="/application/nus">View your Network Updates</a></li>
+    <li><a href="/application/profile">View your Profile</a></li>
+</ul>
+<hr>
+
+<p>Your connections are</p>
+<ol>
+    #{list items:people, as:'p' }
+        <li>
+            ${p.firstName} ${p.lastName}
+            %{
+                 if(p.picture != null && p.picture.length() > 0) {
+            }%
+                    <img src="${p.picture}" height="40" width="40"/>
+            %{
+                 }
+            }%
+        </li>
+
+    #{/list}
+</ol>

@@ -1,0 +1,12 @@
+h2. PlayLinkedIn
+
+This is a simple example webapp written using the Play! framework, scala, and the LinkedIn developer APIs.
+
+The app also uses scribe-java to handle the oauth flow.
+
+* Be sure to edit ApiKeys.scala and fill in the apiKey and secretKey you obtain from http://developer.linkedin.com, otherwise the app won't work*
+
+h3. About me
+
+LinkedIn: http://www.linkedin.com/in/dragade
+Twitter: http://twitter.com/dragade
