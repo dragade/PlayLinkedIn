@@ -29,11 +29,11 @@ object Application extends Controller {
 
   //supposed to be thread safe
   val oauthService = new ServiceBuilder()
-                    .provider(classOf[LinkedInApi])
-                    .apiKey(ApiKeys.apiKey)
-                    .apiSecret(ApiKeys.secretKey)
-                    .callback("http://localhost:9000/application/profile")
-                    .build();
+    .provider(classOf[LinkedInApi])
+    .apiKey(ApiKeys.apiKey)
+    .apiSecret(ApiKeys.secretKey)
+    .callback("http://localhost:9000/application/profile")
+    .build();
 
 
   /**
@@ -59,7 +59,8 @@ object Application extends Controller {
     new Token(token, secret)
   }
 
-  private def saveAccessToken(accessToken : Token) : Unit = {
+  //save the access token in the session since we'll resuse it
+  private def saveAccessToken(accessToken: Token): Unit = {
     session.put(KEY_ACCESS_TOKEN, accessToken.getToken())
     session.put(KEY_ACCESS_TOKEN_SECRET, accessToken.getSecret())
   }
@@ -75,7 +76,7 @@ object Application extends Controller {
    * and passes that param back as well as the oauth_verifier code which is what we really need,
    * so we can ignore the oauth_token param.
    */
-  private def authenticate(oauth_token: String, oauth_verifier: String) : (Token,Boolean)  = {
+  private def authenticate(oauth_token: String, oauth_verifier: String): (Token, Boolean) = {
     val accessTokenToken = session.get(KEY_ACCESS_TOKEN)
     val accessTokenSecret = session.get(KEY_ACCESS_TOKEN_SECRET)
     val needsRedirect = true
@@ -92,7 +93,7 @@ object Application extends Controller {
       //got redirected from LinkedIn and the oauth_verifier is passed as a parameter
       println("Redirected from LinkedIn with oauth_verifier " + oauth_verifier)
       val verifier = new Verifier(oauth_verifier)
-      val accessToken  = oauthService.getAccessToken(rebuildRequestToken(), verifier);
+      val accessToken = oauthService.getAccessToken(rebuildRequestToken(), verifier);
       cleanSession();
       saveAccessToken(accessToken);
       (accessToken, !needsRedirect)
@@ -107,39 +108,38 @@ object Application extends Controller {
 
   /**
    * Tries the main logic to display a template but if fails, then logs the error and redirects to index.
-   *
-   * NOTE: For some reason this is not working in play!!!! It seems to get confused and although the template
-   * gets called, it can't figure out what values it has like ${apiResponse} is empty. This seems to me to
-   * be a more scala way to do things otherwise you end up with the same boilerplate code in each major
-   * action.
    */
-  private def doAndRedirectToIndexOnError(oauth_token: String, oauth_verifier: String, func : Token => Result) : Result = {
+  private def doAndRedirectToIndexOnError(oauth_token: String, oauth_verifier: String, mainAction: (Token => Result)): Result = {
     try {
       val (token, needsRedirect) = authenticate(oauth_token, oauth_verifier)
-      if (needsRedirect) { doRedirect(token) } else { func(token) }
+      if (needsRedirect) {
+        doRedirect(token)
+      } else {
+        mainAction(token)
+      }
     } catch {
-      case e : Exception =>
+      case e: Exception =>
         println("Failed due to " + e.getMessage)
         cleanSession()
-        index
+        Action(index)
     }
   }
 
   /**
    * Redirects to the authorization URL from LinkedIn
    */
-  private def doRedirect(requestToken : Token) = {
-      //now redirect to the authorization url from LinkedIn. the callback will bring us back
-      //to this method but we'll have additional request parameters for oauth_token and oauth_verifier
-      val url = oauthService.getAuthorizationUrl(requestToken)
+  private def doRedirect(requestToken: Token) = {
+    //now redirect to the authorization url from LinkedIn. the callback will bring us back
+    //to this method but we'll have additional request parameters for oauth_token and oauth_verifier
+    val url = oauthService.getAuthorizationUrl(requestToken)
 
-      //in playframework we can only store Strings in the cookie based "session", so
-      //just stash the 2 components of the requestToken
-      cleanSession();
-      session.put(KEY_REQUEST_TOKEN, requestToken.getToken())
-      session.put(KEY_REQUEST_TOKEN_SECRET, requestToken.getSecret())
-      println("Redirecting to " + url + "\n\n")
-      Redirect(url)
+    //in playframework we can only store Strings in the cookie based "session", so
+    //just stash the 2 components of the requestToken
+    cleanSession();
+    session.put(KEY_REQUEST_TOKEN, requestToken.getToken())
+    session.put(KEY_REQUEST_TOKEN_SECRET, requestToken.getSecret())
+    println("Redirecting to " + url + "\n\n")
+    Redirect(url)
   }
 
 
@@ -148,81 +148,51 @@ object Application extends Controller {
    */
   private def makeApiCall(accessToken: Token, restUrl: String) = {
     //create and sign a request for the resource
-    val orequest : OAuthRequest = new OAuthRequest(Verb.GET, restUrl);
+    val orequest: OAuthRequest = new OAuthRequest(Verb.GET, restUrl);
     oauthService.signRequest(accessToken, orequest);
 
     //actually send the request and get the xml body back
-    val oresponse : Response = orequest.send();
+    val oresponse: Response = orequest.send();
     oresponse.getBody();
   }
 
-
   // just gets my profile info and displays the XML data
   def profile(oauth_token: String, oauth_verifier: String) = {
-    try {
-      val (token, needsRedirect) = authenticate(oauth_token, oauth_verifier)
-      if (needsRedirect) {
-        doRedirect(token)
-      }
-      else {
-        println("Getting ready to make a profile call")
-        val restUrl = "http://api.linkedin.com/v1/people/~:(id,first-name,last-name,picture-url)"
-        val apiResponse = makeApiCall(token, restUrl)
-        Template(apiResponse)
-      }
+    def doProfile(token: Token): Result = {
+      println("Getting ready to make a profile call")
+      val restUrl = "http://api.linkedin.com/v1/people/~:(id,first-name,last-name,picture-url)"
+      val apiResponse = makeApiCall(token, restUrl)
+      Template(apiResponse)
     }
-    catch {
-      case e : Exception =>
-        println("Failed due to " + e.getMessage)
-        cleanSession()
-        Action(index)
-    }
+
+    doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doProfile)
   }
 
-// just gets my profile info and displays the XML data
+  // just gets my profile info and displays the XML data
   def nus(oauth_token: String, oauth_verifier: String) = {
-    try {
-      val (token, needsRedirect) = authenticate(oauth_token, oauth_verifier)
-      if (needsRedirect) {
-        doRedirect(token)
-      }
-      else {
-        println("Getting ready to make a nus call")
-        val restUrl = "http://api.linkedin.com/v1/people/~/network/updates?scope=self"
-        val apiResponse = makeApiCall(token, restUrl)
-        Template(apiResponse)
-      }
+    def doNus(token: Token): Result = {
+      println("Getting ready to make a nus call")
+      val restUrl = "http://api.linkedin.com/v1/people/~/network/updates?scope=self"
+      val apiResponse = makeApiCall(token, restUrl)
+      Template(apiResponse)
     }
-    catch {
-      case e : Exception =>
-        println("Failed due to " + e.getMessage)
-        cleanSession()
-        Action(index)
-    }
+
+    doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doNus)
   }
 
   /**
    * The main action for the site, just showing pictures of your connections
    */
   def connections(oauth_token: String, oauth_verifier: String) = {
-    try {
-      val (token, needsRedirect) = authenticate(oauth_token, oauth_verifier)
-      if (needsRedirect) {
-        doRedirect(token)
-      }
-      else {
-        val restUrl = "http://api.linkedin.com/v1/people/~/connections:(id,first-name,last-name,picture-url)"
-        val apiResponse = makeApiCall(token, restUrl)
-        val people = parseConnectionXml(apiResponse)
-        Template(people)
-      }
+    def doConns(token: Token): Result = {
+      println("Getting ready to make a connections call")
+      val restUrl = "http://api.linkedin.com/v1/people/~/connections:(id,first-name,last-name,picture-url)"
+      val apiResponse = makeApiCall(token, restUrl)
+      val people = parseConnectionXml(apiResponse)
+      Template(people)
     }
-    catch {
-      case e : Exception =>
-        println("Failed due to " + e.getMessage)
-        cleanSession()
-        Action(index)
-    }
+
+    doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doConns)
   }
 
   /**
@@ -234,9 +204,9 @@ object Application extends Controller {
    * Parse the XML response from the API and return a list of Person
    */
   private def parseConnectionXml(apiResponse: String) = {
-    val xml =  XML.loadString(apiResponse)
+    val xml = XML.loadString(apiResponse)
     val people = xml \\ "person"
-    people.map( p => {
+    people.map(p => {
       val firstName = (p \ "first-name").text
       val lastName = (p \ "last-name").text
       val picture = (p \ "picture-url").text
