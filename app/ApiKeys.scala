@@ -7,6 +7,6 @@ package controllers
 object ApiKeys {
 
   // Get your own values from developer.linkedin.com -> Your Stuff  -> API Keys
-  val apiKey = ""
-  val secretKey = ""
+  val apiKey = FILL IN YOUR API KEY
+  val secretKey = FILL IN YOUR SECRET KEY
 }
