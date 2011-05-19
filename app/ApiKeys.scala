@@ -7,6 +7,6 @@ package controllers
 object ApiKeys {
 
   // Get your own values from developer.linkedin.com -> Your Stuff  -> API Keys
-  val apiKey = "wzmDT1odRnTY0-cqK9wgxpNVXXLrpdAOW5HFEPYMyvsmLU-_NCovY9C3HW2BY0ft"
-  val secretKey = "4fISNcVw9mu4FMzS7sj8x3kM156lV9f57VT9fwiyYNDh-6CF8499c3btji_foqyO"
+  val apiKey = "81c_ZrqefmsMsH7lbhN8SrAjn2ycdneANBIpX9BRQ9uWCcHHsjI0ECI1BUwT4Kwn"
+  val secretKey = "llNC8WGKrCQx-B9-qveFpvZzS9FU4fRk-6zrt2kNROx2vncpJePBMGbfVFZg9Q-o"
 }

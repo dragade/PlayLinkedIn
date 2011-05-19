@@ -2,7 +2,8 @@ package controllers
 
 import play._
 import play.mvc._
-import play.mvc.results.Result
+import play.mvc.results._
+
 
 import org.scribe.builder._
 import org.scribe.builder.api._
@@ -32,7 +33,7 @@ object Application extends Controller {
     .provider(classOf[LinkedInApi])
     .apiKey(ApiKeys.apiKey)
     .apiSecret(ApiKeys.secretKey)
-    .callback("http://localhost:9000/application/profile")
+    .callback("http://localhost:7000/application/profile")
     .build();
 
 
@@ -162,7 +163,7 @@ object Application extends Controller {
       println("Getting ready to make a profile call")
       val restUrl = "http://api.linkedin.com/v1/people/~:(id,first-name,last-name,picture-url)"
       val apiResponse = makeApiCall(token, restUrl)
-      Template(apiResponse)
+      Template('apiResponse -> apiResponse)
     }
 
     doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doProfile)
@@ -174,7 +175,7 @@ object Application extends Controller {
       println("Getting ready to make a nus call")
       val restUrl = "http://api.linkedin.com/v1/people/~/network/updates?scope=self"
       val apiResponse = makeApiCall(token, restUrl)
-      Template(apiResponse)
+      Template('apiResponse -> apiResponse)
     }
 
     doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doNus)
@@ -193,7 +194,7 @@ object Application extends Controller {
       val apiResponse = makeApiCall(token, restUrl)
       println("JSON from Voldemort:")
       println(apiResponse)
-      Template(apiResponse)
+      Template('apiResponse -> apiResponse)
     }
 
     doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doVm)
@@ -209,7 +210,7 @@ object Application extends Controller {
       val restUrl = "http://api.linkedin.com/v1/people/~/connections:(id,first-name,last-name,picture-url)"
       val apiResponse = makeApiCall(token, restUrl)
       val people = parseConnectionXml(apiResponse)
-      Template(people)
+      Template('people -> people)
     }
 
     doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doConns)
