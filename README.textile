@@ -11,8 +11,12 @@ h3. Installation
 To create the Eclipse .classpath and .project file:
 $ play eclipsify PlayLinkedIn
 
-(I've found that the intellj files didn't work, so I create the .classpath and then import into IntelliJ
-as external project.)
+(I've found that the intellij files created by Play didn't work, so I create the .classpath and then import into IntelliJ as an external project.)
+
+Note: You need to get your API keys from http://developer.linkedin.com
+and edit the ApiKeys.scala file.
+
+This has garbage values which will fail to compile currently.
 
 h4. Running
 play run PlayLinkedIn

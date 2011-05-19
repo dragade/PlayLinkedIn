@@ -10,6 +10,9 @@ import org.scribe.builder.api._
 import org.scribe.model._
 import org.scribe.oauth._
 import scala.xml._
+import java.util.{List=>JList,ArrayList=>JArrayList,HashMap=>JHashMap,Map=>JMap}
+import java.lang.{Integer=>JInteger}
+import voldemort.client._
 
 /**
  * The main controller for the application.
@@ -36,6 +39,24 @@ object Application extends Controller {
     .callback("http://localhost:7000/application/profile")
     .build();
 
+  //this is only needed for going directly to voldemort through the java api
+  val voldemortUrl = "tcp://esv4-heartsvd01.corp.linkedin.com:6666" //Hearts
+  val store = "li-employees"
+  val voldemort : Option[StoreClient[JInteger,JMap[String,Object]]] =
+    try {
+      val config = new ClientConfig
+      config.setBootstrapUrls(voldemortUrl);
+      println("Connecting to voldemort at " + voldemortUrl)
+      val factory = new SocketStoreClientFactory(config)
+      println("Connecting to " + store)
+      Some(factory.getStoreClient(store))
+    }
+    catch {
+      case e : Exception =>
+        printf("Failed to connect directly to voldemort store %s in cluster %s due to %s", store, voldemortUrl, e.getMessage);
+        e.printStackTrace();
+        None
+    }
 
   /**
    * Shows the main intro page (no need to authenticate here)
@@ -184,17 +205,33 @@ object Application extends Controller {
   // gets my voldemort data and displays the data
   def vm(oauth_token: String, oauth_verifier: String) = {
     def doVm(token: Token): Result = {
-      //val storeName = "li-employees"
-      //val key = 325284
-      val storeName = "wipa-state"
       val key = 325284
-
-      println("Getting ready to make a voldemort call to store " + storeName)
-      val restUrl = "http://api.linkedin.com/v1/voldemort/stores/" + storeName + "/values/" + key
+      println("Getting ready to make a voldemort call to store " + store)
+      val restUrl = "http://api.linkedin.com/v1/voldemort/stores/" + store + "/values/" + key
       val apiResponse = makeApiCall(token, restUrl)
       println("JSON from Voldemort:")
       println(apiResponse)
       Template('apiResponse -> apiResponse)
+    }
+
+    doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doVm)
+  }
+
+  // gets my voldemort data direct from the java API and displays the data
+  def vm_direct(oauth_token: String, oauth_verifier: String) = {
+    def doVm(token: Token): Result = {
+      voldemort match {
+        case Some(vm) =>
+          val key = 325284
+          println("Getting ready to make a voldemort call to store " + store)
+          val apiResponse = vm.getValue(key)
+          println("JSON from Voldemort:")
+          println(apiResponse)
+          Template('apiResponse -> apiResponse)
+
+        case None =>
+          Template('apiResponse -> "voldemort was not initialized earlier, so this call cannot be made")
+      }
     }
 
     doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doVm)
