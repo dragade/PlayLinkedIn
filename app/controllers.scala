@@ -168,7 +168,7 @@ object Application extends Controller {
     doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doProfile)
   }
 
-  // just gets my profile info and displays the XML data
+  // just gets my network updates info and displays the XML data
   def nus(oauth_token: String, oauth_verifier: String) = {
     def doNus(token: Token): Result = {
       println("Getting ready to make a nus call")
@@ -179,6 +179,26 @@ object Application extends Controller {
 
     doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doNus)
   }
+
+  // gets my voldemort data and displays the data
+  def vm(oauth_token: String, oauth_verifier: String) = {
+    def doVm(token: Token): Result = {
+      //val storeName = "li-employees"
+      //val key = 325284
+      val storeName = "wipa-state"
+      val key = 325284
+
+      println("Getting ready to make a voldemort call to store " + storeName)
+      val restUrl = "http://api.linkedin.com/v1/voldemort/stores/" + storeName + "/values/" + key
+      val apiResponse = makeApiCall(token, restUrl)
+      println("JSON from Voldemort:")
+      println(apiResponse)
+      Template(apiResponse)
+    }
+
+    doAndRedirectToIndexOnError(oauth_token, oauth_verifier, doVm)
+  }
+
 
   /**
    * The main action for the site, just showing pictures of your connections
